@@ -1,12 +1,12 @@
 # Solve Real-World Data Problems with SQL
-The queries shown here were used to complete a LinkedIn Learning course, instructed by Jess Ramos.
-The course can be found here: [Solve Real-World Data Problems with SQL](https://www.linkedin.com/learning/solve-real-world-data-problems-with-sql/continuing-on-with-sql).
-The following concepts were practiced in SQL during this course:
-* Product Analytics using CTEs
-* Data Transformation using CASE
-* Combining Multiple Data Sources using UNION
-* Manipulating Hierarchical Data using Self Joins
-* Window Functions, such as 
+The queries showcased here were employed to advance skills through a LinkedIn Learning course, led by Jess Ramos. Access the course: Master Real-World Data Challenges with SQL.
+Key SQL concepts covered in this course include:
+
+*Utilizing Common Table Expressions (CTEs) for Product Analytics
+*Employing CASE statements for Data Transformation
+*Merging Multiple Data Sources with UNION
+*Manipulating Hierarchical Data using Self Joins
+*Leveraging Window Functions for advanced analytics
 
 ## Challenge 1: Pull descriptive statistics with a CTE
 ### Calculating descriptive statistics for monthly revenue by product
