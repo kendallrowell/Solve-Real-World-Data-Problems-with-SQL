@@ -1,0 +1,245 @@
+-- Challenge 1:
+
+/*
+This query revealed that the Expert product boasted a higher average monthly revenue compared to the Basic Product. However, the Basic product exhibited greater consistency in monthly revenue, as indicated by its lower standard deviation.
+*/
+
+
+WITH monthlyrev AS(
+    SELECT date_trunc('month', orderdate),productname, sum(revenue) AS rev
+    FROM subscriptions
+    JOIN products
+    ON subscriptions.PRODUCTID = products.PRODUCTID
+    WHERE orderdate BETWEEN '2022-01-01' AND '2022-12-31'
+    GROUP BY date_trunc('month', orderdate), productname
+)
+SELECT productname,
+    min(rev) AS min_rev,
+    max(rev) AS max_rev,
+    avg(rev) AS avg_rev,
+    stddev(rev) AS std_dev_rev
+FROM monthlyrev
+GROUP BY productname;
+
+
+-- Challenge 2:
+WITH event5stats AS(
+    SELECT userid, count(userID) AS num_link_clicks
+    FROM frontendeventlog
+    WHERE eventid = 5
+    GROUP BY UserID
+)
+
+SELECT num_link_clicks, count(num_link_clicks) AS num_users
+FROM event5stats
+GROUP BY  num_link_clicks;
+
+/*
+
+The findings indicated that fifty percent of the users revisit the email to click on the link once more.
+*/
+
+-- Challenge 3
+
+WITH maximum AS(
+	SELECT SubscriptionID,
+        max(statusID) AS maxstatus
+	FROM PaymentStatusLog
+	GROUP BY SubscriptionID)
+    , paymentstages AS(
+        SELECT s.SubscriptionID,
+            -- case expression was provided for this challenge
+            CASE WHEN maxstatus = 1 THEN 'PaymentWidgetOpened'
+                    WHEN maxstatus = 2 THEN 'PaymentEntered'
+                    WHEN maxstatus = 3 AND currentstatus = 0 THEN 'User Error with Payment Submission'
+                    WHEN maxstatus = 3 AND currentstatus != 0 THEN 'Payment Submitted'
+                    WHEN maxstatus = 4 AND currentstatus = 0 THEN 'Payment Processing Error with Vendor'
+                    WHEN maxstatus = 4 AND currentstatus != 0 THEN 'Payment Success'
+                    WHEN maxstatus = 5 THEN 'Complete'
+                    WHEN maxstatus IS NULL THEN 'User did not start payment process'
+                    END AS paymentfunnelstage
+        FROM Subscriptions s
+        LEFT JOIN maximum m -- Not all subscriptions have a payment status
+        ON s.SubscriptionID = m.SubscriptionID)
+
+SELECT paymentfunnelstage, count(*) AS subscriptions
+FROM paymentstages
+GROUP BY paymentfunnelstage;
+
+/*
+The outcome demonstrates user interaction with the payment process, pinpointing areas ripe for enhancement.
+*/
+
+-- Challenge 4
+SELECT customerid,
+    count(*) AS num_products,
+    sum(numberofusers) AS total_users,
+    CASE
+        WHEN count(*) = 1 OR sum(numberofusers) >= 5000 THEN 1
+        ELSE 0
+        END AS upsell_opportunity
+FROM subscriptions
+group by customerid;
+
+/*
+This outcome highlights customers who meet the desired criteria and represent potential upsell opportunities for the sales team.
+*/
+
+-- Challenge 5
+Select userid,
+    SUM(CASE WHEN log.eventid = 1 THEN 1 ELSE 0 END) AS ViewedHelpCenterPage,
+    SUM(CASE WHEN log.eventid = 2 THEN 1 ELSE 0 END) AS ClickedFAQs,
+    SUM(CASE WHEN log.eventid = 3 THEN 1 ELSE 0 END) AS ClickedContactSupport,
+    SUM(CASE WHEN log.eventid = 4 THEN 1 ELSE 0 END) AS SubmittedTicket
+FROM
+	Frontendeventlog log
+JOIN
+	frontendeventdefinitions def
+	ON log.eventid = def.eventid
+WHERE
+	eventtype = 'Customer Support'
+GROUP BY
+	userid;
+
+/*
+This outcome offers insights into the frequency of a particular user's engagement in a specific action.
+*/
+
+-- Challenge 6
+With all_subscriptions as(
+	SELECT expirationdate
+	FROM SubscriptionsProduct1
+	WHERE active = 1 
+
+	UNION ALL
+    -- Union all can be used since the products are different and there will be no duplicates
+
+	SELECT expirationdate
+	FROM SubscriptionsProduct2
+	WHERE active = 1
+
+
+)
+-- the code below was provided to focus on UNION
+select
+	date_trunc('year', expirationdate) as exp_year, 
+	count(*) as subscriptions
+from 
+	all_subscriptions
+group by 
+	date_trunc('year', expirationdate)
+
+
+/*
+The UNION ALL operation enables us to retrieve customer data from two separate databases and execute a single query.
+*/
+
+-- Challenge 7
+with all_cancelation_reasons as(
+    select SUBSCRIPTIONID, cancelationreason1 as cancelationreason
+    from cancelations
+
+    UNION
+ -- In this scenario, using UNION is more secure in case a user submits the same answer or null multiple times.
+
+    select SUBSCRIPTIONID, cancelationreason2 as cancelationreason
+    from cancelations
+
+    UNION 
+
+    select SUBSCRIPTIONID, cancelationreason3 as cancelationreason
+    from cancelations
+)
+-- the code below was provided to emphasize the utilization of UNION
+select 
+    cast(count( 
+        case when cancelationreason = 'Expensive' 
+        then subscriptionid end) as float)
+    /count(distinct subscriptionid) as percent_expensive
+from    
+    all_cancelation_reasons;
+
+/*
+Half, or 50%, of the users who canceled their subscriptions cited the reason as being the cost being too high.
+*/
+
+-- Challenge 8
+
+select e.employeeid,
+    e.name as employee_name,
+    manager.name as manager_name,
+    case
+        when manager.name is null then e.email
+        else manager.email 
+        end as contact_email
+    -- course provided coalesce() as an althernate solution:
+	-- coalesce(manager.email, e.email) as contact_email
+from employees e
+left join employees manager
+on e.managerid = manager.employeeid
+where e.department = 'Sales';
+
+-- Challenge 9
+with monthly_revenue as( -- the monthly revenue cte was provided
+    select 
+        date_trunc('month', orderdate) as order_month, 
+        sum(revenue) as monthly_revenue
+    from 
+        subscriptions
+    group by 
+        date_trunc('month', orderdate)
+        )
+
+select current.order_month as current_month,
+    previous.order_month as previous_month,
+    current.monthly_revenue as current_revenue,
+    previous.monthly_revenue as previous_revenue
+from
+	monthly_revenue current
+join
+	monthly_revenue previous
+where
+	datediff('month', previous.order_month, current.order_month) = 1
+	AND
+	current.monthly_revenue > previous.monthly_revenue;
+
+/*
+This report highlights July and October as months where the revenue exceeded that of the previous month.
+*/
+
+-- Challenge 10
+WITH sale_ranks AS (
+	SELECT
+		salesemployeeid,
+		saleamount,
+		saledate,
+		row_number() OVER(partition by salesemployeeid order by saledate desc) as most_recent_sale
+	FROM
+		sale
+)
+SELECT
+	*
+FROM
+	sale_ranks
+WHERE most_recent_sale = 1
+
+/*
+The report monitors the sales quota of each employee over time, providing a running total and the percentage of their quota achieved. This data enhances the visualization of each employee's performance throughout their sales journey.
+*/
+
+-- Challenge 11
+SELECT
+    StatusMovementID,
+    SubscriptionID,
+    StatusID,
+    MovementDate,
+    lead(MovementDate, 1) OVER (partition by SubscriptionID order by MovementDate) as nextstatusmovementdate,
+    lead(MovementDate, 1) OVER (partition by SubscriptionID order by MovementDate) - MovementDate AS timeinstatus
+FROM
+    PaymentStatusLog
+WHERE
+    subscriptionid = 38844
+
+/*
+This report offers insights into the time intervals between payment steps and can pinpoint any potential issues that may have occurred.
+*/
