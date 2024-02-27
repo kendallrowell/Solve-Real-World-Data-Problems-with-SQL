@@ -1,10 +1,5 @@
 -- Challenge 1:
 
-/*
-This query revealed that the Expert product boasted a higher average monthly revenue compared to the Basic Product. However, the Basic product exhibited greater consistency in monthly revenue, as indicated by its lower standard deviation.
-*/
-
-
 WITH monthlyrev AS(
     SELECT date_trunc('month', orderdate),productname, sum(revenue) AS rev
     FROM subscriptions
@@ -21,6 +16,9 @@ SELECT productname,
 FROM monthlyrev
 GROUP BY productname;
 
+/*
+This query revealed that the Expert product boasted a higher average monthly revenue compared to the Basic Product. However, the Basic product exhibited greater consistency in monthly revenue, as indicated by its lower standard deviation.
+*/
 
 -- Challenge 2:
 WITH event5stats AS(
@@ -67,7 +65,7 @@ FROM paymentstages
 GROUP BY paymentfunnelstage;
 
 /*
-The outcome demonstrates user interaction with the payment process, pinpointing areas ripe for enhancement.
+The outcome demonstrates user interaction with the payment process, pinpointing areas for improvement.
 */
 
 -- Challenge 4
